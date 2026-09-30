@@ -1,13 +1,12 @@
 import sys
 from pathlib import Path
+import hashlib
 
 # sys.argv holds words supplied in the terminal
 # pyhton minigit.py init
 # -> ["minigit.py", "init"]
-if len(sys.argv) != 2 or sys.argv[1] != "init":
-    print("Usage: python minigit.py init")
-else:
-    # existing initialisation logic goes here
+
+if len(sys.argv) == 2 and sys.argv[1] == "init":
     root = Path.cwd()  # current dir
     if (root / ".minigit").exists():
         print("Repository already exists")
@@ -15,5 +14,28 @@ else:
         git_dir = root / ".minigit"  # joins path components
         git_dir.mkdir()  # creates the directory
         (git_dir / "index").touch()  # creates the file (empty)
-        (git_dir / "HEAD").write_text("NO COMMIT YET")  # writes text to a file
+        (git_dir / "HEAD").write_text(
+            "refs/heads/main"
+        )  # head stores the path of the currently active branch
         (git_dir / "objects").mkdir()  # creates the directory
+        (git_dir / "refs" / "heads").mkdir(parents=True)
+        # parents=true create missing parent folders too
+elif len(sys.argv) == 3 and sys.argv[1] == "add":
+    path = Path(sys.argv[2])
+    root = Path.cwd()
+    git_dir = root / ".minigit"
+    if not git_dir.exists():
+        print("Not a MiniGit repository")
+    elif not path.exists():
+        print(f"File {path} does not exist")
+    else:
+        data = path.read_bytes()
+        hash_value = hashlib.sha1(data).hexdigest()
+        object_path = git_dir / "objects" / hash_value
+        if not object_path.exists():
+            object_path.write_bytes(data)
+        index_path = git_dir / "index"
+        with index_path.open("a") as f:
+            f.write(f"{hash_value} {path}\n")
+else:
+    print("Invalid command")
