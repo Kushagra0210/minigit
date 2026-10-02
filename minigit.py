@@ -1,7 +1,6 @@
 import sys
 from pathlib import Path
 import hashlib
-
 # sys.argv holds words supplied in the terminal
 # pyhton minigit.py init
 # -> ["minigit.py", "init"]
@@ -35,7 +34,18 @@ elif len(sys.argv) == 3 and sys.argv[1] == "add":
         if not object_path.exists():
             object_path.write_bytes(data)
         index_path = git_dir / "index"
-        with index_path.open("a") as f:
-            f.write(f"{hash_value} {path}\n")
+        # load existing index entries into a dixtionary
+        staged_files = {}
+        for line in index_path.read_text().splitlines():
+            if not line.strip():
+                continue
+            stored_hash, stored_path = line.split(maxsplit=1)
+            staged_files[stored_path] = stored_hash
+        # add the new file to the staging area
+        staged_files[str(path)] = hash_value
+        # write the updated index back to disk
+        with index_path.open("w") as f:
+            for p, h in staged_files.items():
+                f.write(f"{h} {p}\n")
 else:
     print("Invalid command")
